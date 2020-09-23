@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2008-2020 the MRtrix3 contributors.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Covered Software is provided under this License on an "as is"
+# basis, without warranty of any kind, either expressed, implied, or
+# statutory, including, without limitation, warranties that the
+# Covered Software is free of defects, merchantable, fit for a
+# particular purpose or non-infringing.
+# See the Mozilla Public License v. 2.0 for more details.
+#
+# For more details, see http://www.mrtrix.org/.
+
+
+# __________ Initialise and configure MRtrix3 as a library __________
+
+# This script fetches the latest stable version of MRtrix3 (master) and
+# configures it to be used for this project. To select a specific
+# version of MRtrix, write the git tag or sha-1 hash to
+# a file "mrtrix3_library_version".
+
+# All arguments provided are passed on to the configure script.
+
+set -e
+repo_path="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cd ${repo_path}
+
+mrtrix3_version=master
+[ -e mrtrix3_library_version ] && mrtrix3_version=$(<mrtrix3_library_version)
+
+if [ ! -d mrtrix3 ]; then
+	git clone https://github.com/MRtrix3/mrtrix3.git mrtrix3
+fi
+cd mrtrix3
+git fetch
+git checkout "${mrtrix3_version}"
+# pull latest if mrtrix3_version is a branch
+git show-ref --verify --quiet refs/heads/"${mrtrix3_version}" && git pull
+./configure "$@"
+
+cd ${repo_path}
+[ ! -e build ] && ln -s mrtrix3/build build
