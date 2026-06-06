@@ -1,0 +1,10 @@
+# Agent / editor scratch
+.claude
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Build / install directories (when the external-project build system is spliced in locally)
+/build*/
+/stage/

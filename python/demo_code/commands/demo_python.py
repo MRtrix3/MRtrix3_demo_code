@@ -15,23 +15,28 @@ def usage(cmdline):
 
 # this function contains the primary operation of the command
 def execute():
-  from mrtrix3 import path, run
+  from mrtrix3 import app, path, run
   # import data in temporary directory
-  app.make_scratch_dir()
-  run.command('mrconvert ' + path.from_user(app.ARGS.input) + ' ' + path.to_scratch('in.mif') + ' -strides 0,0,0,1')
-  app.goto_scratch_dir()
+  app.activate_scratch_dir()
+  # use f-strings to support user-specified paths that may contain spaces
+  # typically import user-specified data into the scratch directory before processing
+  # have to set "preserve_pipes=True" in case input image is piped from another MRtrix3 command;
+  #   it can't be deleted until the command is completed
+  run.command(f'mrconvert {app.ARGS.input} in.mif -strides 0,0,0,1',
+              preserve_pipes=True)
   # primary command processing
   run.command('mrcalc in.mif -log log.mif')
   run.command('mrmath -axis 3 log.mif mean meanlog.mif')
-  if app.ARGS.invalid:
-    run.command('mrcalc meanlog.mif -exp NaN {} -replace out.mif'.format(app.ARGS.invalid))
+  if app.ARGS.invalid is not None:
+    run.command(f'mrcalc meanlog.mif -exp NaN {app.ARGS.invalid} -replace out.mif')
   else:
     run.command('mrcalc meanlog.mif -exp out.mif')
   # copy to output
-  run.command('mrconvert out.mif ' + path.from_user(app.ARGS.output))
-
-# Execute the script
-import mrtrix3
-mrtrix3.execute()
-
+  # "mrconvert_keyval" with input image ensures accurate "command_history" in output header
+  # must honour if user specifies -force
+  # "preserve_pipes=True" necessary to make sure if output image is a pipe it doesn't get deleted
+  run.command(f'mrconvert out.mif {app.ARGS.output}',
+              mrconvert_keyval=app.ARGS.input,
+              force=app.FORCE_OVERWRITE,
+              preserve_pipes=True)
 
